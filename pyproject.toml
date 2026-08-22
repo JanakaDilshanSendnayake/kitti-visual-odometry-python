@@ -1,0 +1,16 @@
+[project]
+name = "kitti-visual-odometry"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "ipykernel>=7.3.0",
+    "ipympl>=0.10.0",
+    "jupyterlab>=4.6.3",
+    "jupyterlab-lsp>=5.3.0",
+    "matplotlib>=3.11.1",
+    "numpy>=2.5.2",
+    "opencv-contrib-python>=5.0.0.93",
+    "pandas>=3.0.5",
+    "progressbar2>=4.6.0",
+    "python-lsp-server[all]>=1.15.0",
+]
