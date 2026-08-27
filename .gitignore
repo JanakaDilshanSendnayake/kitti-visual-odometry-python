@@ -8,3 +8,5 @@ __pycache__/
 
 # KITTI odometry dataset (downloaded separately, very large)
 dataset/
+.idea/
+.jupyter/
