@@ -23,10 +23,18 @@ def project_to_image(
 
     depth = cam[2].copy()
     pixels = np.round((P0 @ np.vstack([cam / cam[2], np.ones(cam.shape[1])]))[:2].T)
-    u, v = pixels.astype(np.int32).T
 
-    inside = (u >= 0) & (u < imwidth) & (v >= 0) & (v < imheight)
-    u, v, depth = u[inside], v[inside], depth[inside]
+    # Points almost exactly on the image plane project to huge or non-finite
+    # coordinates, so bound them before casting to int.
+    u, v = pixels.T
+    inside = (
+        np.isfinite(u) & np.isfinite(v)
+        & (u >= 0) & (u < imwidth)
+        & (v >= 0) & (v < imheight)
+    )
+    u = u[inside].astype(np.int32)
+    v = v[inside].astype(np.int32)
+    depth = depth[inside]
 
     # Nearest point wins where several land on one pixel.
     buffer = np.full((imheight, imwidth), np.inf, dtype=np.float32)
