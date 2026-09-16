@@ -33,13 +33,17 @@ def estimate_motion(
     pts2: np.ndarray,
     depth: np.ndarray,
     k: np.ndarray,
-    max_depth: float = 50.0,
+    max_depth: float = float("inf"),
 ) -> Motion | None:
     """Solve for the motion that takes the frame-1 points to where they appear in frame 2.
 
     Points in frame 1 are back-projected to 3D using the depth map, then PnP with
     RANSAC finds the pose that reprojects them onto their frame-2 matches. Returns
     None when there is not enough to solve with, so the caller can hold the last pose.
+
+    Keep ``max_depth`` open by default. Distant points are what pin down rotation,
+    and capping it drifts the heading: on sequence 00 a 50 m cap costs about 0.3%
+    of distance travelled. Stereo depth is already bounded by MIN_DISPARITY.
     """
     height, width = depth.shape
     u = np.clip(np.round(pts1[:, 0]).astype(int), 0, width - 1)

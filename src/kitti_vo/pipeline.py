@@ -35,11 +35,13 @@ class FrameResult:
 class VOConfig:
     detector: str = "sift"
     matching: str = "BF"
-    ratio: float = 0.7
+    # A tight ratio pays off over a long run. RANSAC drops gross outliers, but
+    # weak matches carry a small bias that accumulates into drift.
+    ratio: float = 0.3
     stereo_matcher: str = "sgbm"
     num_disparities: int = 96
     block_size: int = 11
-    max_depth: float = 50.0
+    max_depth: float = float("inf")
     use_lidar: bool = True
 
 

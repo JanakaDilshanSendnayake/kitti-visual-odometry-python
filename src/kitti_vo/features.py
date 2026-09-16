@@ -17,7 +17,7 @@ class FeatureTracker:
         self,
         detector: str = "sift",
         matching: str = "BF",
-        ratio: float = 0.7,
+        ratio: float = 0.3,
     ) -> None:
         if detector == "sift":
             self._detector = cv2.SIFT_create()

@@ -10,3 +10,6 @@ __pycache__/
 dataset/
 .idea/
 .jupyter/
+
+# VO run outputs (trajectories + cached frames)
+runs/
