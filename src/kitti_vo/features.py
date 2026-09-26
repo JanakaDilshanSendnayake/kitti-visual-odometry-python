@@ -23,8 +23,8 @@ class FeatureTracker:
             self._detector = cv2.SIFT_create()
             norm = cv2.NORM_L2
         elif detector == "orb":
-            self._detector = cv2.ORB_create(nfeatures=3000)
-            norm = cv2.NORM_HAMMING  # ORB descriptors are binary
+            self._detector = cv2.ORB_create()
+            norm = cv2.NORM_HAMMING2  # binary descriptors
         else:
             raise ValueError(f"unknown detector {detector!r}, expected 'sift' or 'orb'")
 
@@ -35,11 +35,7 @@ class FeatureTracker:
         if matching == "BF":
             self._matcher = cv2.BFMatcher_create(norm, crossCheck=False)
         elif matching == "FLANN":
-            if detector == "sift":
-                index_params = dict(algorithm=1, trees=5)  # KD-tree, float descriptors
-            else:
-                index_params = dict(algorithm=6, table_number=6, key_size=12,
-                                    multi_probe_level=1)  # LSH, binary descriptors
+            index_params = dict(algorithm=1, trees=5)  # KD-tree
             self._matcher = cv2.FlannBasedMatcher(index_params, dict(checks=50))
         else:
             raise ValueError(f"unknown matching {matching!r}, expected 'BF' or 'FLANN'")

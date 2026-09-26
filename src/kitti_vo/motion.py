@@ -33,7 +33,7 @@ def estimate_motion(
     pts2: np.ndarray,
     depth: np.ndarray,
     k: np.ndarray,
-    max_depth: float = float("inf"),
+    max_depth: float = 3000.0,
 ) -> Motion | None:
     """Solve for the motion that takes the frame-1 points to where they appear in frame 2.
 
@@ -41,21 +41,24 @@ def estimate_motion(
     RANSAC finds the pose that reprojects them onto their frame-2 matches. Returns
     None when there is not enough to solve with, so the caller can hold the last pose.
 
-    Keep ``max_depth`` open by default. Distant points are what pin down rotation,
-    and capping it drifts the heading: on sequence 00 a 50 m cap costs about 0.3%
-    of distance travelled. Stereo depth is already bounded by MIN_DISPARITY.
+    ``max_depth`` drops points too far off to trust, which is also what removes
+    the unmatched pixels carried through the depth map as very large values.
     """
     height, width = depth.shape
-    u = np.clip(np.round(pts1[:, 0]).astype(int), 0, width - 1)
-    v = np.clip(np.round(pts1[:, 1]).astype(int), 0, height - 1)
-    z = depth[v, u]
+    # Round only to look up the depth map. Back-projection keeps the sub-pixel
+    # keypoint coordinates, which is where the 3D points get their precision.
+    rows = np.clip(np.round(pts1[:, 1]).astype(int), 0, height - 1)
+    cols = np.clip(np.round(pts1[:, 0]).astype(int), 0, width - 1)
+    z = depth[rows, cols]
 
     # Drop points with no depth, or too far away to trust.
     usable = (z > 0) & (z <= max_depth)
     if usable.sum() < MIN_POINTS:
         return None
 
-    u, v, z = u[usable].astype(np.float64), v[usable].astype(np.float64), z[usable]
+    u = pts1[usable, 0].astype(np.float64)
+    v = pts1[usable, 1].astype(np.float64)
+    z = z[usable]
     cx, cy, fx, fy = k[0, 2], k[1, 2], k[0, 0], k[1, 1]
     object_points = np.column_stack([z * (u - cx) / fx, z * (v - cy) / fy, z])
     image_points = pts2[usable]

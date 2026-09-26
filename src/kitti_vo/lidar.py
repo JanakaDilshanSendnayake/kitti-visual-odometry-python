@@ -12,12 +12,12 @@ def project_to_image(
     Tr: np.ndarray,
     P0: np.ndarray,
 ) -> np.ndarray:
-    """Render a scan as sparse depth, float32 (H, W), 0 where no point landed."""
+    """Render a scan as sparse depth, (H, W), 0 where no point landed."""
     xyz = pointcloud[pointcloud[:, 0] > 0, :3]  # drop points behind the sensor
     cam = Tr @ np.hstack([xyz, np.ones((len(xyz), 1))]).T
     cam = cam[:, cam[2] > 0]
 
-    render = np.zeros((imheight, imwidth), dtype=np.float32)
+    render = np.zeros((imheight, imwidth))
     if cam.shape[1] == 0:
         return render
 
@@ -34,12 +34,9 @@ def project_to_image(
     )
     u = u[inside].astype(np.int32)
     v = v[inside].astype(np.int32)
-    depth = depth[inside]
 
-    # Nearest point wins where several land on one pixel.
-    buffer = np.full((imheight, imwidth), np.inf, dtype=np.float32)
-    np.minimum.at(buffer, (v, u), depth)
-    return np.where(np.isinf(buffer), 0.0, buffer)
+    render[v, u] = depth[inside]
+    return render
 
 
 def fuse_depth(stereo_depth: np.ndarray, lidar_depth: np.ndarray) -> np.ndarray:

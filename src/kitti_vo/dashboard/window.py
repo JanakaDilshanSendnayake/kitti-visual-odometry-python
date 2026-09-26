@@ -7,6 +7,7 @@ import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 from PyQt6 import QtCore, QtWidgets
 
+from ..stereo import DISPARITY_FLOOR
 from .sources import FrameView, LiveSource, ReplaySource
 
 pg.setConfigOptions(imageAxisOrder="row-major", antialias=True)
@@ -14,6 +15,9 @@ pg.setConfigOptions(imageAxisOrder="row-major", antialias=True)
 EST_COLOR = (80, 220, 120)
 GT_COLOR = (150, 150, 150)
 MAX_LIDAR_POINTS = 40000  # keep the GL view responsive
+# Fixed depth colour range, so a colour means the same distance in every frame
+# and playback does not flicker. Roughly the useful range of both sensors.
+DEPTH_DISPLAY_MAX = 80.0
 
 
 class Dashboard(QtWidgets.QMainWindow):
@@ -27,7 +31,13 @@ class Dashboard(QtWidgets.QMainWindow):
         self.resize(1600, 950)
 
         self.ground_truth = source.ground_truth
+        # Depth the matcher assigns to pixels it could not match. Hidden rather
+        # than clipped, or "no data" paints as the brightest colour on the map.
+        calib = source.seq.calib
+        self.unmatched_depth = 0.99 * calib.focal_length * calib.baseline / DISPARITY_FLOOR
         self.poses: list[np.ndarray] = []
+        self.track_x: list[float] = []
+        self.track_z: list[float] = []
         self.errors: list[float] = []
         self.inlier_rates: list[float] = []
         self.index = 0
@@ -99,7 +109,9 @@ class Dashboard(QtWidgets.QMainWindow):
         vb = self.depth_view.addViewBox(lockAspect=True, invertY=True)
         self.depth_image = pg.ImageItem()
         vb.addItem(self.depth_image)
-        self.depth_bar = pg.ColorBarItem(colorMap=pg.colormap.get("plasma"), interactive=False)
+        self.depth_bar = pg.ColorBarItem(
+            colorMap=pg.colormap.get("plasma"), interactive=False, values=(0.0, DEPTH_DISPLAY_MAX)
+        )
         self.depth_bar.setImageItem(self.depth_image)
         self.depth_view.addItem(self.depth_bar, row=0, col=1)
         return self._titled(self.depth_view, "Depth (m)")
@@ -230,17 +242,20 @@ class Dashboard(QtWidgets.QMainWindow):
         self.poses.append(view.pose)
         self._draw(view)
 
-        traj = np.array(self.poses)
-        self.traj_curve.setData(traj[:, 0, 3], traj[:, 2, 3])
-        self.traj_head.setData([traj[-1, 0, 3]], [traj[-1, 2, 3]])
+        # Keep the two plotted coordinates directly, rather than rebuilding the
+        # whole pose history into an array on every frame.
+        self.track_x.append(float(view.pose[0, 3]))
+        self.track_z.append(float(view.pose[2, 3]))
+        self.traj_curve.setData(self.track_x, self.track_z)
+        self.traj_head.setData([self.track_x[-1]], [self.track_z[-1]])
 
         self.inlier_rates.append(view.n_inliers / max(view.n_points, 1) * 100)
-        self.inlier_curve.setData(np.arange(len(self.inlier_rates)), np.array(self.inlier_rates))
+        self.inlier_curve.setData(np.arange(len(self.inlier_rates)), self.inlier_rates)
 
         if len(self.ground_truth) > len(self.poses) - 1:
             gt = self.ground_truth[len(self.poses) - 1]
             self.errors.append(float(np.linalg.norm(view.pose[:3, 3] - gt[:3, 3])))
-            self.error_curve.setData(np.arange(len(self.errors)), np.array(self.errors))
+            self.error_curve.setData(np.arange(len(self.errors)), self.errors)
 
     # ---------------- drawing ----------------
 
@@ -260,10 +275,12 @@ class Dashboard(QtWidgets.QMainWindow):
             self.match_lines.clear()
 
         if view.depth is not None:
-            valid = view.depth[view.depth > 0]
-            top = float(np.percentile(valid, 95)) if valid.size else 1.0
-            self.depth_image.setImage(view.depth)
-            self.depth_bar.setLevels((0.0, top))
+            d = view.depth
+            matched = d < self.unmatched_depth
+            shown = np.where(matched, d, np.nan)  # NaN draws as background
+            # Levels must be passed explicitly: setImage would otherwise rescale
+            # to each frame's own range and the colours would shift as it plays.
+            self.depth_image.setImage(shown, autoLevels=False, levels=(0.0, DEPTH_DISPLAY_MAX))
 
         if view.pointcloud is not None:
             self._draw_lidar(view.pointcloud)

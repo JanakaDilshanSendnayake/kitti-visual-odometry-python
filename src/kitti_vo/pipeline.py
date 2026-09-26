@@ -35,13 +35,11 @@ class FrameResult:
 class VOConfig:
     detector: str = "sift"
     matching: str = "BF"
-    # A tight ratio pays off over a long run. RANSAC drops gross outliers, but
-    # weak matches carry a small bias that accumulates into drift.
     ratio: float = 0.3
     stereo_matcher: str = "sgbm"
-    num_disparities: int = 96
+    sad_window: int = 6
     block_size: int = 11
-    max_depth: float = float("inf")
+    max_depth: float = 3000.0
     use_lidar: bool = True
 
 
@@ -62,11 +60,11 @@ class VisualOdometry:
             c.focal_length,
             c.baseline,
             matcher=self.config.stereo_matcher,
-            num_disparities=self.config.num_disparities,
+            sad_window=self.config.sad_window,
             block_size=self.config.block_size,
         )
         self.tracker = FeatureTracker(self.config.detector, self.config.matching, self.config.ratio)
-        self.mask = feature_mask(sequence.imheight, sequence.imwidth, self.config.num_disparities)
+        self.mask = feature_mask(sequence.imheight, sequence.imwidth, self.stereo.num_disparities)
         self.use_lidar = self.config.use_lidar and sequence.has_lidar
 
     def run(self, start: int = 0, end: int | None = None) -> Iterator[FrameResult]:

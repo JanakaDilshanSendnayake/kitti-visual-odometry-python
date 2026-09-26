@@ -14,9 +14,9 @@ from tqdm import tqdm
 from .dataset import KittiSequence
 from .pipeline import VisualOdometry, VOConfig, trajectory_error
 
-# Depth is stored as uint16 PNG. 128 steps per metre keeps sub-centimetre
-# precision and still reaches 511 m, past anything stereo reports.
-DEPTH_SCALE = 128.0
+# Depth is cached as uint16 PNG for replay. 16 steps per metre reaches 4095 m,
+# enough to hold the large values unmatched pixels carry, at 6 cm precision.
+DEPTH_SCALE = 16.0
 
 
 def save_depth(path: Path, depth: np.ndarray) -> None:
@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--matching", default="BF", choices=["BF", "FLANN"])
     p.add_argument("--stereo", default="sgbm", choices=["bm", "sgbm"])
     p.add_argument("--ratio", type=float, default=0.3)
-    p.add_argument("--max-depth", type=float, default=float("inf"))
+    p.add_argument("--max-depth", type=float, default=3000.0)
     p.add_argument("--no-lidar", action="store_true")
     p.add_argument("--no-cache", action="store_true", help="skip saving per-frame depth and points")
     args = p.parse_args(argv)
