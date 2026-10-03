@@ -13,5 +13,8 @@ dataset/
 .idea/
 .jupyter/
 
+# Build artefacts
+dist/
+
 # VO run outputs (trajectories + cached frames)
 runs/

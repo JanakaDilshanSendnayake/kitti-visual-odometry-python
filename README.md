@@ -108,3 +108,11 @@ Stereo depth against LiDAR, where both have a measurement:
 match are floored at 0.1, which puts them near 3861 m — far outside any real
 scene. `estimate_motion` drops them with its `max_depth` cut, and the dashboard
 excludes them when scaling its colour range.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
+
+The KITTI odometry benchmark itself is not redistributed here and carries its own
+terms: CC BY-NC-SA 3.0, non-commercial use only. Download it from
+[cvlibs.net](https://www.cvlibs.net/datasets/kitti/eval_odometry.php).
