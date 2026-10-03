@@ -5,6 +5,8 @@ __pycache__/
 
 # Jupyter
 .ipynb_checkpoints/
+.jupyter_ystore.db
+.virtual_documents/
 
 # KITTI odometry dataset (downloaded separately, very large)
 dataset/
