@@ -4,6 +4,10 @@ Stereo + LiDAR visual odometry on the KITTI odometry benchmark, with a real-time
 dashboard showing the camera, LiDAR scan, depth map, feature tracking and the
 estimated trajectory.
 
+<p align="center">
+  <img src="images/dashboard.gif" alt="Dashboard replaying sequence 00">
+</p>
+
 ## Setup
 
 ```bash
